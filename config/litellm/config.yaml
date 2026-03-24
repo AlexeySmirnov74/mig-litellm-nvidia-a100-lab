@@ -1,0 +1,26 @@
+model_list:
+  - model_name: general-chat
+    litellm_params:
+      model: openai/general-chat
+      api_base: http://tgi-general:80/v1
+      api_key: dummy-local-key
+      rpm: 120
+
+  - model_name: fast-chat
+    litellm_params:
+      model: openai/fast-chat
+      api_base: http://tgi-fast:80/v1
+      api_key: dummy-local-key
+      rpm: 240
+
+  - model_name: tiny-chat
+    litellm_params:
+      model: openai/tiny-chat
+      api_base: http://tgi-tiny:80/v1
+      api_key: dummy-local-key
+      rpm: 600
+
+litellm_settings:
+  set_verbose: false
+  callbacks: ["prometheus"]
+

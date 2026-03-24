@@ -1,0 +1,216 @@
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: litellm
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--host", "0.0.0.0"]
+    ports:
+      - "${LITELLM_PORT:-4000}:4000"
+    environment:
+      LITELLM_MASTER_KEY: ${OPENAI_API_KEY:-dummy-local-key}
+      STORE_MODEL_IN_DB: "false"
+    volumes:
+      - ../config/litellm/config.yaml:/app/config.yaml:ro
+      - ../state/litellm:/app/state
+    depends_on:
+      tgi-general:
+        condition: service_healthy
+      tgi-fast:
+        condition: service_healthy
+      tgi-tiny:
+        condition: service_healthy
+    restart: unless-stopped
+
+  context-guard:
+    build:
+      context: ../services/context_guard
+      dockerfile: Dockerfile
+    container_name: context-guard
+    ports:
+      - "4010:4010"
+    environment:
+      LITELLM_BASE_URL: http://litellm:4000
+      LITELLM_API_KEY: ${OPENAI_API_KEY:-dummy-local-key}
+    depends_on:
+      - litellm
+    restart: unless-stopped
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - "${OPENWEBUI_PORT:-3000}:8080"
+    environment:
+      OPENAI_API_BASE_URL: http://context-guard:4010/v1
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-dummy-local-key}
+      WEBUI_SECRET_KEY: ${OPENWEBUI_SECRET_KEY:-change-this-to-a-very-long-random-secret-key-32chars-min}
+      ENABLE_SIGNUP: "false"
+      ENABLE_OLLAMA_API: "false"
+      DEFAULT_MODELS: general-chat
+    volumes:
+      - ../state/openwebui:/app/backend/data
+    depends_on:
+      - context-guard
+    restart: unless-stopped
+
+  tgi-general:
+    image: ghcr.io/huggingface/text-generation-inference:3.3.1
+    container_name: tgi-general
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: ${MIG_GENERAL_UUID}
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      HF_TOKEN: ${HF_TOKEN}
+    shm_size: 1g
+    ports:
+      - "8081:80"
+    volumes:
+      - hf-cache:/data
+    command:
+      - --model-id
+      - ${GENERAL_MODEL_ID}
+      - --hostname
+      - 0.0.0.0
+      - --port
+      - "80"
+      - --max-input-tokens
+      - "1536"
+      - --max-total-tokens
+      - "2048"
+      - --max-batch-prefill-tokens
+      - "2048"
+      - --max-concurrent-requests
+      - "16"
+      - --json-output
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+    restart: unless-stopped
+
+  tgi-fast:
+    image: ghcr.io/huggingface/text-generation-inference:3.3.1
+    container_name: tgi-fast
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: ${MIG_FAST_UUID}
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      HF_TOKEN: ${HF_TOKEN}
+    shm_size: 1g
+    ports:
+      - "8082:80"
+    volumes:
+      - hf-cache:/data
+    command:
+      - --model-id
+      - ${FAST_MODEL_ID}
+      - --hostname
+      - 0.0.0.0
+      - --port
+      - "80"
+      - --max-input-tokens
+      - "768"
+      - --max-total-tokens
+      - "1024"
+      - --max-batch-prefill-tokens
+      - "1024"
+      - --max-concurrent-requests
+      - "16"
+      - --json-output
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+    restart: unless-stopped
+
+  tgi-tiny:
+    image: ghcr.io/huggingface/text-generation-inference:3.3.1
+    container_name: tgi-tiny
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: ${MIG_TINY_UUID}
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      HF_TOKEN: ${HF_TOKEN}
+    shm_size: 1g
+    ports:
+      - "8083:80"
+    volumes:
+      - hf-cache:/data
+    command:
+      - --model-id
+      - ${TINY_MODEL_ID}
+      - --hostname
+      - 0.0.0.0
+      - --port
+      - "80"
+      - --max-input-tokens
+      - "384"
+      - --max-total-tokens
+      - "512"
+      - --max-batch-prefill-tokens
+      - "512"
+      - --max-concurrent-requests
+      - "8"
+      - --json-output
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+    restart: unless-stopped
+
+  dcgm-exporter:
+    image: nvcr.io/nvidia/k8s/dcgm-exporter:4.4.1-4.6.0-ubuntu22.04
+    container_name: dcgm-exporter
+    runtime: nvidia
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      DCGM_EXPORTER_LISTEN: ":9400"
+    ports:
+      - "9400:9400"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../state/prometheus:/prometheus
+    depends_on:
+      - dcgm-exporter
+      - litellm
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    container_name: grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ../state/grafana:/var/lib/grafana
+      - ../config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  hf-cache:
+
+

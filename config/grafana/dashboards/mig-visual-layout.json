@@ -1,0 +1,380 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "bargauge",
+      "title": "Current Occupancy % by MIG Slice",
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "(DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"1g.5gb\"} / 4864) * 100",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "A"
+        },
+        {
+          "expr": "(DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"2g.10gb\"} / 9984) * 100",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "B"
+        },
+        {
+          "expr": "(DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"3g.20gb\"} / 20096) * 100",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 85
+              },
+              {
+                "color": "red",
+                "value": 95
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showUnfilled": true
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Used Memory by MIG Slice (MiB)",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "DCGM_FI_DEV_FB_USED",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decmbytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 4000
+              },
+              {
+                "color": "red",
+                "value": 4700
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "lcd",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showUnfilled": true
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Current GPU Util by MIG Slice",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "DCGM_FI_DEV_GPU_UTIL",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showUnfilled": true
+      }
+    },
+    {
+      "type": "state-timeline",
+      "title": "Slice Occupancy State Over Time",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "((DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"1g.5gb\"} / 4864) > bool 0.95) * 2 + ((DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"1g.5gb\"} / 4864) > bool 0.85)",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "A"
+        },
+        {
+          "expr": "((DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"2g.10gb\"} / 9984) > bool 0.95) * 2 + ((DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"2g.10gb\"} / 9984) > bool 0.85)",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "B"
+        },
+        {
+          "expr": "((DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"3g.20gb\"} / 20096) > bool 0.95) * 2 + ((DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"3g.20gb\"} / 20096) > bool 0.85)",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "mergeValues": true,
+        "showValue": "auto",
+        "rowHeight": 0.85
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Free/Normal"
+                },
+                "1": {
+                  "text": "Busy"
+                },
+                "2": {
+                  "text": "Near OOM"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory Pressure % by Slice",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "(DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"1g.5gb\"} / 4864) * 100",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "A"
+        },
+        {
+          "expr": "(DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"2g.10gb\"} / 9984) * 100",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "B"
+        },
+        {
+          "expr": "(DCGM_FI_DEV_FB_USED{GPU_I_PROFILE=\"3g.20gb\"} / 20096) * 100",
+          "legendFormat": "{{GPU_I_PROFILE}} / GI {{GPU_I_ID}}",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Current Slice Snapshot",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "DCGM_FI_DEV_FB_USED",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "DCGM_FI_DEV_GPU_UTIL",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "0"
+        }
+      }
+    }
+  ],
+  "refresh": "500ms",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "mig",
+    "gpu",
+    "visual"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "MIG Visual Layout",
+  "uid": "mig-visual-layout",
+  "version": 1,
+  "weekStart": ""
+}
